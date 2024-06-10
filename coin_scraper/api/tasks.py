@@ -1,12 +1,13 @@
 from celery import shared_task
-from .models import Job, Task
 from .coinmarketcap import CoinMarketCap
-import uuid
+from .models import Job, Task
 
 @shared_task
-def scrape_coin_data(job_id, coins):
+def scrape_coin_data(coin, job_id):
     coinmarketcap = CoinMarketCap()
-    job = Job.objects.get(job_id=job_id)
-    for coin in coins:
-        data = coinmarketcap.get_coin_data(coin)
-        Task.objects.create(job=job, coin=coin, output=data)
+    data = coinmarketcap.get_coin_data(coin)
+    task = Task.objects.get(job_id=job_id, coin=coin)
+    task.output = data
+    task.status = 'COMPLETED' if data else 'FAILED'
+    task.save()
+

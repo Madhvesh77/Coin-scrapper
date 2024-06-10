@@ -14,10 +14,19 @@ class JobViewSet(viewsets.ViewSet):
             return Response({'error': 'Invalid input'}, status=status.HTTP_400_BAD_REQUEST)
 
         job = Job.objects.create()
+        tasks_data = []
         for coin in coins:
-            Task.objects.create(job=job, coin=coin)
+            task = Task.objects.create(job=job, coin=coin)
+            print("jbjkbjk"+str(task))
             scrape_coin_data.delay(coin, str(job.job_id))
-        return Response({'job_id': str(job.job_id)})
+            task.refresh_from_db()
+            tasks_data.append({'coin': coin, 'task_id': str(task.id), 'output': str(task.output), 'status': str(task.status)})
+        # for task_data in tasks_data:
+        #     task = Task.objects.get(id=task_data['task_id'])
+        #     # while task.output is None:
+        #     #     task.refresh_from_db()
+        #     task_data['output'] = task.output 
+        return Response({'job_id': str(job.job_id), 'tasks': tasks_data})
 
     @action(detail=True, methods=['get'])
     def scraping_status(self, request, pk=None):
